@@ -1,4 +1,5 @@
 use regex;
+use std::path;
 
 #[derive(Debug, PartialEq, Eq)]
 enum Language {
@@ -19,8 +20,7 @@ pub struct Rule {
 }
 
 impl Rule {
-    pub fn new(file_name: &String) -> Option<Self> {
-        let path = std::path::Path::new(file_name);
+    pub fn new(path: &path::Path) -> Option<Self> {
         let extension = path.extension()?.to_str().unwrap();
 
         let language = match extension {
@@ -59,8 +59,15 @@ impl Rule {
         })
     }
 
-    pub fn contains_function(&self, line: &String) -> bool {
-        self.function_syntax.is_match(line)
+    pub fn contains_function(&self, line: &String, function_name: &String) -> bool {
+        if !self.function_syntax.is_match(&line) {
+            return false;
+        }
+
+        match self.function_syntax.captures(&line) {
+            Some(cap) => cap.get(1).unwrap().as_str() == function_name.as_str(),
+            None => false,
+        }
     }
 }
 
@@ -71,6 +78,7 @@ impl Rule {
 #[cfg(test)]
 mod tests {
     use super::{Language, Rule};
+    use std::path;
 
     #[test]
     fn detects_language() {
@@ -84,19 +92,26 @@ mod tests {
 
         for language in languages {
             let lang = String::from(language.0);
-            let rule = Rule::new(&lang).unwrap();
+
+            let path = path::Path::new(&lang);
+            let rule = Rule::new(&path).unwrap();
+
             assert_eq!(rule.language, language.1);
         }
     }
 
     #[test]
     fn detects_function() {
-        let js_rule = Rule::new(&String::from("javascript.js")).unwrap();
+        let js_rule = Rule::new(&path::Path::new("javascript.js")).unwrap();
 
-        let contains = js_rule.contains_function(&String::from("function jsFunction() {"));
+        let contains = js_rule.contains_function(
+            &String::from("function jsFunction() {"),
+            &String::from("jsFunction"),
+        );
         assert_eq!(contains, true);
 
-        let contains = js_rule.contains_function(&String::from("const notFunction = 5;"));
+        let contains =
+            js_rule.contains_function(&String::from("const notFunction = 5;"), &String::new());
         assert_eq!(contains, false);
     }
 }
