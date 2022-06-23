@@ -42,10 +42,10 @@ impl Rule {
         */
         let function_syntax = match &language {
             Language::Rust => regex::Regex::new(r"fn *([a-zA-Z0-9_]*) *\(.*\) *\{?"),
-            Language::Python => regex::Regex::new(r"def *([a-zA-Z0-9_]*) *\([.]*\) *: *"),
-            Language::Javascript => regex::Regex::new(
-                r"(?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *\{?",
-            ),
+            Language::Python => regex::Regex::new(r"def *([a-zA-Z0-9_]*) *\([.]*\) *:"),
+            Language::Javascript => {
+                regex::Regex::new(r"(?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *\{?")
+            }
             // TODO: Finish all regex
             _ => regex::Regex::new(r".*"),
         }
@@ -75,6 +75,26 @@ mod tests {
     use super::{Language, Rule};
     use std::path;
 
+    fn rule_from_language(lang: Language) -> Rule {
+        let rust_path = path::Path::new("rust.rs");
+        let python_path = path::Path::new("python.py");
+        let javascript_path = path::Path::new("javascript.js");
+        let typescript_path = path::Path::new("typescript.ts");
+        let golang_path = path::Path::new("golang.go");
+        let c_path = path::Path::new("c.c");
+
+        match lang {
+            Language::Rust => Rule::new(&rust_path),
+            Language::Python => Rule::new(&python_path),
+            Language::Javascript => Rule::new(&javascript_path),
+            Language::Typescript => Rule::new(&typescript_path),
+            Language::Golang => Rule::new(&golang_path),
+            Language::C => Rule::new(&c_path),
+            _ => unreachable!(),
+        }
+        .unwrap()
+    }
+
     #[test]
     fn detects_language() {
         let languages = vec![
@@ -82,6 +102,9 @@ mod tests {
             ("python.py", Language::Python),
             ("path/to/typescript.ts", Language::Typescript),
             ("javascript.module.js", Language::Javascript),
+            ("golang-file.go", Language::Golang),
+            ("c_cpp.cc", Language::C),
+            ("multiple.py.js", Language::Javascript),
             ("unknown.unknown", Language::Unknown),
         ];
 
@@ -97,16 +120,42 @@ mod tests {
 
     #[test]
     fn detects_function() {
-        let js_rule = Rule::new(&path::Path::new("javascript.js")).unwrap();
+        let functions = vec![
+            // Rust
+            (
+                "fn rust_function() {",
+                "rust_function",
+                Language::Rust,
+                true,
+            ),
+            (
+                "func rust_function() {",
+                "rust_function",
+                Language::Rust,
+                false,
+            ),
+            // Python
+            ("def py_function():", "py_function", Language::Python, true),
+            ("def py_function()", "py_function", Language::Python, false),
+            // Javascript/Typescript
+            (
+                "function jsFunction(){",
+                "jsFunction",
+                Language::Javascript,
+                true,
+            ),
+            (
+                "function js_function() {",
+                "jsFunction",
+                Language::Javascript,
+                false,
+            ),
+        ];
 
-        let contains = js_rule.contains_function(
-            &String::from("function jsFunction() {"),
-            &String::from("jsFunction"),
-        );
-        assert_eq!(contains, true);
-
-        let contains =
-            js_rule.contains_function(&String::from("const notFunction = 5;"), &String::new());
-        assert_eq!(contains, false);
+        for (line, name, lang, expected) in functions {
+            let rule = rule_from_language(lang);
+            let result = rule.contains_function(&String::from(line), &String::from(name));
+            assert_eq!(result, expected);
+        }
     }
 }
