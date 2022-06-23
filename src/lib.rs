@@ -24,17 +24,12 @@ pub struct Capture {
 }
 
 impl Capture {
-    pub fn new(path: &path::Path) -> io::Result<Self> {
+    pub fn new(path: &path::Path) -> Result<Self, String> {
         let rule = match rules::Rule::new(&path) {
             Some(rule) => rule,
             None => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    String::from(format!(
-                        "Error creating Rule for {}",
-                        path.to_str().unwrap()
-                    )),
-                ))
+                let error_msg = format!("Error creating Rule for: {}", path.to_str().unwrap());
+                return Err(error_msg);
             }
         };
 
@@ -65,6 +60,8 @@ impl Capture {
                 start_line = idx + 1;
             }
 
+            // TODO: Revisit this implementation, and should test for programming languages
+            // that do not use an explicit delimiter such as python
             if start_line != 0 && line.contains(&self.rule.delimiter.0) {
                 num_delimiters += 1;
             } else if start_line != 0 && line.contains(&self.rule.delimiter.1) {
@@ -75,6 +72,13 @@ impl Capture {
                     break;
                 }
             }
+        }
+
+        if start_line == 0 && end_line == 0 {
+            return Err(io::Error::new(
+                io::ErrorKind::NotFound,
+                "Function not found in file",
+            ));
         }
 
         self.from_interval(start_line, end_line)
@@ -89,10 +93,9 @@ impl Capture {
         }
 
         let lines = read_lines(&self.path_str)?;
+        let mut result_lines = Vec::new();
 
         let mut min_leading_spaces = -1;
-
-        let mut result_lines = Vec::new();
 
         for (idx, line) in lines.enumerate() {
             let line = line?;
@@ -126,7 +129,7 @@ impl Capture {
             }
         }
 
-        // Clean leading spaces in line based on the minimum number of leading spaces
+        // Clean leading spaces based on the minimum number of leading spaces
         // found on the result strings, to prevent unnecessary indentation.
         for line in result_lines {
             let mut trimmed = String::new();

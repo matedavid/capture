@@ -35,14 +35,14 @@ impl Rule {
         };
 
         let function_syntax = match &language {
-            Language::Rust => regex::Regex::new(r"^fn *([a-zA-Z0-9_]+) *\(.*\) *\{? *$"),
-            Language::Python => regex::Regex::new(r"^def *([a-zA-Z0-9_]+) *\([.]*\) *: *$"),
+            Language::Rust => regex::Regex::new(r"^ *fn *([a-zA-Z0-9_]+) *\(.*\) *\{? *$"),
+            Language::Python => regex::Regex::new(r"^ *def *([a-zA-Z0-9_]+) *\([.]*\) *: *$"),
             Language::Javascript => regex::Regex::new(
-                r"^(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]+)? *(?:=>)? *\{? *$",
+                r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]+)? *(?:=>)? *\{? *$",
             ),
-            Language::Typescript => regex::Regex::new(r"^(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]*)? *(?:=>)? *\{? *$"),
-            Language::Golang => regex::Regex::new(r"^func *([a-zA-Z0-9_]+) *\(.*\) *(?:.*)? *\{? *$"),
-            Language::C => regex::Regex::new(r"^[a-zA-Z0-9_*& ]+ ([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
+            Language::Typescript => regex::Regex::new(r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]*)? *(?:=>)? *\{? *$"),
+            Language::Golang => regex::Regex::new(r"^ *func *([a-zA-Z0-9_]+) *\(.*\) *(?:.*)? *\{? *$"),
+            Language::C => regex::Regex::new(r"^ *[a-zA-Z0-9_*& ]+ ([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
             _ => regex::Regex::new(r".*"),
         }.unwrap();
 
