@@ -10,3 +10,7 @@ fn example_function_1() -> usize {
 fn example_function_2() {
     // Nothing in here
 }
+
+    fn indented_function() {
+        // with something inside
+    }

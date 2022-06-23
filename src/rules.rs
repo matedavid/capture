@@ -51,16 +51,9 @@ impl Rule {
         }
         .unwrap();
 
-        // let comment_chars = match &language {
-        //     Javascript => ("//", "/*"),
-        //     _ => ("", ""),
-        // };
-        //let comment_chars = (String::from(comment_chars.0), String::from(comment_chars.1));
-
         Some(Rule {
             language,
             function_syntax,
-            // comment_chars,
             delimiter: (String::from("{"), String::from("}")),
         })
     }
