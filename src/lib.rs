@@ -131,18 +131,17 @@ impl Capture {
 
         // Clean leading spaces based on the minimum number of leading spaces
         // found on the result strings, to prevent unnecessary indentation.
-        for line in result_lines {
-            let mut trimmed = String::new();
+        for mut line in result_lines {
             let mut num = 0;
-            for c in line.chars() {
-                if c == ' ' && num < min_leading_spaces {
-                    num += 1;
-                } else if num >= min_leading_spaces {
-                    trimmed.push(c);
-                }
+            while !line.is_empty()
+                && line.chars().next().unwrap() == ' '
+                && num < min_leading_spaces
+            {
+                line.remove(0);
+                num += 1;
             }
 
-            self.result.push(trimmed);
+            self.result.push(line);
         }
 
         Ok(())

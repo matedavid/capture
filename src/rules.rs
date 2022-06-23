@@ -42,6 +42,8 @@ impl Rule {
             ),
             Language::Typescript => regex::Regex::new(r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]*)? *(?:=>)? *\{? *$"),
             Language::Golang => regex::Regex::new(r"^ *func *([a-zA-Z0-9_]+) *\(.*\) *(?:.*)? *\{? *$"),
+            // In C++, when creating snippet of class function, you only need to input the 'function_name',
+            // not the complete 'Class::function_name'
             Language::C => regex::Regex::new(r"^ *[a-zA-Z0-9_*& ]+(?: |::)([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
             _ => regex::Regex::new(r".*"),
         }.unwrap();
