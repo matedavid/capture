@@ -34,13 +34,13 @@ impl Rule {
         };
 
         /* Regular expressions:
-            - Javascript: (?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *{
+            - Javascript: (?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *(?:{)?
             - ...
         */
         let function_syntax = match &language {
             // TODO: Learn why it throw error in '|' character
             Javascript => {
-                regex::Regex::new(r"(?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *\{")
+                regex::Regex::new(r"(?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *(?:\{)?")
             }
             _ => regex::Regex::new(r".*"),
         }
@@ -55,7 +55,7 @@ impl Rule {
         Some(Rule {
             language,
             function_syntax,
-            //comment_chars,
+            // comment_chars,
         })
     }
 
@@ -70,10 +70,6 @@ impl Rule {
         }
     }
 }
-
-// fn function_syntax(keyword: &String, tail: &String, limiters: (char, char)) -> regex::Regex {
-//     regex::Regex::new(r"example").unwrap()
-// }
 
 #[cfg(test)]
 mod tests {
