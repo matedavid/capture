@@ -8,56 +8,84 @@ mod rules;
 
 fn read_lines(path: &path::Path) -> io::Result<io::Lines<io::BufReader<File>>> {
     let file = File::open(&path)?;
-    let reader = std::io::BufReader::new(file);
+    let reader = io::BufReader::new(file);
 
     let lines = reader.lines();
     Ok(lines)
 }
 
-pub fn from_function(path: &path::Path, name: &String) -> std::io::Result<()> {
-    let rule = match rules::Rule::new(&path) {
-        Some(rule) => rule,
-        None => {
-            return Err(std::io::Error::new(
-                io::ErrorKind::Other,
-                String::from(format!(
-                    "Error creating Rule for {}",
-                    path.to_str().unwrap()
-                )),
-            ))
-        }
-    };
+pub struct Capture {
+    rule: rules::Rule,
+    path_str: String,
+    result: Vec<String>,
+}
 
-    let mut found = false;
-    let mut num_delimiters: usize = 0;
+impl Capture {
+    pub fn new(path: &path::Path) -> io::Result<Self> {
+        let rule = match rules::Rule::new(&path) {
+            Some(rule) => rule,
+            None => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    String::from(format!(
+                        "Error creating Rule for {}",
+                        path.to_str().unwrap()
+                    )),
+                ))
+            }
+        };
 
-    let mut result_lines: Vec<String> = Vec::new();
+        Ok(Capture {
+            rule,
+            path_str: String::from(path.to_str().unwrap()),
+            result: Vec::new(),
+        })
+    }
 
-    let lines = read_lines(&path)?;
-    for line in lines {
-        let line = line?;
-        if rule.contains_function(&line, &name) {
-            found = true;
-        }
+    pub fn from_function(&mut self, name: &String) -> io::Result<()> {
+        let path = path::Path::new(&self.path_str);
 
-        if found {
-            result_lines.push(line.clone());
-        }
+        let mut found = false;
+        let mut num_delimiters: usize = 0;
 
-        if found && line.contains(&rule.delimiter.0) {
-            num_delimiters += 1;
-        } else if found && line.contains(&rule.delimiter.1) {
-            num_delimiters -= 1;
+        let mut result_lines = Vec::new();
 
-            if num_delimiters == 0 {
-                break;
+        let lines = read_lines(&path)?;
+        for line in lines {
+            let line = line?;
+            if self.rule.contains_function(&line, &name) {
+                found = true;
+            }
+
+            if found {
+                result_lines.push(line.clone());
+            }
+
+            if found && line.contains(&self.rule.delimiter.0) {
+                num_delimiters += 1;
+            } else if found && line.contains(&self.rule.delimiter.1) {
+                num_delimiters -= 1;
+
+                if num_delimiters == 0 {
+                    break;
+                }
             }
         }
+
+        self.result = result_lines;
+
+        Ok(())
     }
 
-    for line in result_lines {
-        println!("{}", line);
-    }
+    pub fn from_interval(&mut self, start: usize, end: usize) {}
 
-    Ok(())
+    pub fn bookmark(&self, name: &String) {}
+
+    pub fn snippet(&self, output_path: &path::Path) {}
+
+    pub fn print(&self) {
+        for line in &self.result {
+            println!("{}", line);
+        }
+    }
 }
