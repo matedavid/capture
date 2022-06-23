@@ -34,22 +34,17 @@ impl Rule {
             _ => Language::Unknown,
         };
 
-        /* Regular expressions:
-            - Rust: fn *([a-zA-Z0-9_]*) *\(.*\) *{?
-            - Python: def *([a-zA-Z0-9_]*) *\([.]*\) *: *
-            - Javascript: (?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *(?:{)?
-            - ...
-        */
         let function_syntax = match &language {
-            Language::Rust => regex::Regex::new(r"fn *([a-zA-Z0-9_]*) *\(.*\) *\{?"),
-            Language::Python => regex::Regex::new(r"def *([a-zA-Z0-9_]*) *\([.]*\) *:"),
-            Language::Javascript => {
-                regex::Regex::new(r"(?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *\{?")
-            }
-            // TODO: Finish all regex
+            Language::Rust => regex::Regex::new(r"^fn *([a-zA-Z0-9_]+) *\(.*\) *\{? *$"),
+            Language::Python => regex::Regex::new(r"^def *([a-zA-Z0-9_]+) *\([.]*\) *: *$"),
+            Language::Javascript => regex::Regex::new(
+                r"^(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]+)? *(?:=>)? *\{? *$",
+            ),
+            Language::Typescript => regex::Regex::new(r"^(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]*)? *(?:=>)? *\{? *$"),
+            Language::Golang => regex::Regex::new(r"^func *([a-zA-Z0-9_]+) *\(.*\) *(?:.*)? *\{? *$"),
+            Language::C => regex::Regex::new(r"^[a-zA-Z0-9_*& ]+ ([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
             _ => regex::Regex::new(r".*"),
-        }
-        .unwrap();
+        }.unwrap();
 
         Some(Rule {
             language,
@@ -108,13 +103,13 @@ mod tests {
             ("unknown.unknown", Language::Unknown),
         ];
 
-        for language in languages {
-            let lang = String::from(language.0);
+        for (lang, expected) in languages {
+            let lang = String::from(lang);
 
             let path = path::Path::new(&lang);
             let rule = Rule::new(&path).unwrap();
 
-            assert_eq!(rule.language, language.1);
+            assert_eq!(rule.language, expected);
         }
     }
 
@@ -138,18 +133,35 @@ mod tests {
             ("def py_function():", "py_function", Language::Python, true),
             ("def py_function()", "py_function", Language::Python, false),
             // Javascript/Typescript
+            ("function jsFunc() {", "jsFunc", Language::Javascript, true),
+            ("function js_func(){", "jsFunc", Language::Javascript, false),
+            ("function js_func", "js_func", Language::Javascript, false),
+            ("let tsFunc = () => {", "tsFunc", Language::Typescript, true),
             (
-                "function jsFunction(){",
-                "jsFunction",
-                Language::Javascript,
+                "let func = () number => {",
+                "func",
+                Language::Typescript,
+                false,
+            ),
+            // Golang
+            ("func goFunc() int {", "goFunc", Language::Golang, true),
+            (
+                "func go_func(func(int,int) int, int) int",
+                "go_func",
+                Language::Golang,
                 true,
             ),
             (
-                "function js_function() {",
-                "jsFunction",
-                Language::Javascript,
-                false,
+                "func f(func(int,int) int, int) func(int, int) int { ",
+                "f",
+                Language::Golang,
+                true,
             ),
+            ("func () int {", "", Language::Golang, false),
+            // C/C++
+            ("static void* func() {", "func", Language::C, true),
+            ("CustomClass func()", "func", Language::C, true),
+            ("void () {", "", Language::C, false),
         ];
 
         for (line, name, lang, expected) in functions {
