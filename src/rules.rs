@@ -42,7 +42,7 @@ impl Rule {
             ),
             Language::Typescript => regex::Regex::new(r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]*)? *(?:=>)? *\{? *$"),
             Language::Golang => regex::Regex::new(r"^ *func *([a-zA-Z0-9_]+) *\(.*\) *(?:.*)? *\{? *$"),
-            Language::C => regex::Regex::new(r"^ *[a-zA-Z0-9_*& ]+ ([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
+            Language::C => regex::Regex::new(r"^ *[a-zA-Z0-9_*& ]+(?: |::)([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
             _ => regex::Regex::new(r".*"),
         }.unwrap();
 
