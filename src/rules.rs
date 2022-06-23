@@ -16,7 +16,8 @@ enum Language {
 pub struct Rule {
     language: Language,
     function_syntax: regex::Regex,
-    //comment_chars: (String, String),
+    // comment_syntax: regex::Regex,
+    pub delimiter: (String, String),
 }
 
 impl Rule {
@@ -34,28 +35,33 @@ impl Rule {
         };
 
         /* Regular expressions:
+            - Rust: fn *([a-zA-Z0-9_]*) *\(.*\) *{?
+            - Python: def *([a-zA-Z0-9_]*) *\([.]*\) *: *
             - Javascript: (?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *(?:{)?
             - ...
         */
         let function_syntax = match &language {
-            // TODO: Learn why it throw error in '|' character
-            Javascript => {
-                regex::Regex::new(r"(?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *(?:\{)?")
-            }
+            Language::Rust => regex::Regex::new(r"fn *([a-zA-Z0-9_]*) *\(.*\) *\{?"),
+            Language::Python => regex::Regex::new(r"def *([a-zA-Z0-9_]*) *\([.]*\) *: *"),
+            Language::Javascript => regex::Regex::new(
+                r"(?:function|const) *([a-zA-Z0-9_]*) *=? *\(.*\) *(?:=>)? *\{?",
+            ),
+            // TODO: Finish all regex
             _ => regex::Regex::new(r".*"),
         }
         .unwrap();
 
-        let comment_chars = match &language {
-            Javascript => ("//", "/*"),
-            _ => ("", ""),
-        };
+        // let comment_chars = match &language {
+        //     Javascript => ("//", "/*"),
+        //     _ => ("", ""),
+        // };
         //let comment_chars = (String::from(comment_chars.0), String::from(comment_chars.1));
 
         Some(Rule {
             language,
             function_syntax,
             // comment_chars,
+            delimiter: (String::from("{"), String::from("}")),
         })
     }
 
