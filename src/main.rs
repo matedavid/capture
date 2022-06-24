@@ -3,51 +3,59 @@ use clap::Parser;
 use std::path;
 
 #[derive(clap::Subcommand, Debug)]
-enum Action {
+enum CaptureType {
     Function {
-        #[clap(short, long, value_parser)]
-        name: String
+        /// Name of the function to create bookmark from
+        name: String,
     },
     Interval {
-        #[clap(short, long, value_parser, default_value_t=0)]
-        start: usize,
-
-        #[clap(short, long, value_parser, default_value_t=0)]
-        end: usize
+        /// Line interval to create bookmark from, format start_line:end_line
+        #[clap(default_value = "0:0")]
+        interval: String,
     },
+}
+
+#[derive(clap::Parser, Debug)]
+struct AddCommand {
+    /// Name of the new bookmark
+    name: String,
+
+    /// File to create bookmark from
+    #[clap(short, long, value_parser)]
+    file: String,
+
+    /// How to create bookmark
+    #[clap(subcommand)]
+    action: CaptureType,
+}
+
+#[derive(clap::Parser, Debug)]
+struct DeleteCommand {
+    /// Name of the bookmark to delete
+    name: String,
+}
+
+#[derive(clap::Parser, Debug)]
+struct ListCommand {
+    #[clap(long)]
+    oneline: bool,
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum Action {
+    Add(AddCommand),
+    Delete(DeleteCommand),
+    List(ListCommand),
+    Snippet,
 }
 
 #[derive(clap::Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    // File to creates snippet from
-    #[clap(short, long, value_parser)]
-    file: String,
-
-    // Function to take
     #[clap(subcommand)]
     action: Action,
 }
 
 fn main() {
     let args = Args::parse();
-
-    let path = path::Path::new(&args.file);
-    let mut cap = match capture::Capture::new(&path) {
-        Ok(cap) => cap,
-        Err(e) => {
-            println!("Error: {}", e); 
-            std::process::exit(1);
-        }
-    };
-
-    match &args.action {
-        Action::Function { name } => {
-            cap.from_function(name).unwrap();
-        },
-        Action::Interval { start, end } => { 
-            cap.from_interval(*start, *end).unwrap();
-        },
-    }
-    cap.print();
 }
