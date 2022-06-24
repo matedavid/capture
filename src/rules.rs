@@ -35,7 +35,7 @@ impl Rule {
         };
 
         let function_syntax = match &language {
-            Language::Rust => regex::Regex::new(r"^ *fn *([a-zA-Z0-9_]+) *\(.*\) *\{? *$"),
+            Language::Rust => regex::Regex::new(r"^ *fn *([a-zA-Z0-9_]+) *\(.*\) *(?:-> *[a-zA-Z0-9_]+ *)?\{? *$"),
             Language::Python => regex::Regex::new(r"^ *def *([a-zA-Z0-9_]+) *\([.]*\) *: *$"),
             Language::Javascript => regex::Regex::new(
                 r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]+)? *(?:=>)? *\{? *$",
