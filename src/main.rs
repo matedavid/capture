@@ -36,6 +36,12 @@ struct DeleteCommand {
 }
 
 #[derive(clap::Parser, Debug)]
+struct GetCommand {
+    /// Name of the bookmark to delete
+    name: String,
+}
+
+#[derive(clap::Parser, Debug)]
 struct ListCommand {
     #[clap(long)]
     oneline: bool,
@@ -45,8 +51,9 @@ struct ListCommand {
 enum Action {
     Add(AddCommand),
     Delete(DeleteCommand),
+    Get(GetCommand),
     List(ListCommand),
-    Snippet,
+    //Snippet,
 }
 
 #[derive(clap::Parser, Debug)]
@@ -56,6 +63,51 @@ struct Args {
     action: Action,
 }
 
+fn add_command(command: &AddCommand) {
+    let path = path::Path::new(&command.file);
+
+    let mut cap = capture::Capture::new(&path).unwrap();
+    match &command.action {
+        CaptureType::Function { name } => cap.from_function(&name).unwrap(),
+        CaptureType::Interval { interval } => {
+            let re = regex::Regex::new(r"[0-9]+:[0-9]+").unwrap();
+            if !re.is_match(interval) {
+                panic!("Interval does not have correct format");
+            }
+
+            let (start, end) = interval.split_once(":").unwrap();
+            let start: usize = start.parse().unwrap();
+            let end: usize = end.parse().unwrap();
+            if end < start {
+                panic!("End line must be greater or equal than start line");
+            }
+
+            cap.from_interval(start, end).unwrap();
+        }
+    }
+
+    cap.print();
+}
+
+fn delete_command(name: &String) {
+    unimplemented!();
+}
+
+fn get_command(name: &String) {
+    unimplemented!();
+}
+
+fn list_command(name: &ListCommand) {
+    unimplemented!();
+}
+
 fn main() {
     let args = Args::parse();
+
+    match args.action {
+        Action::Add(command) => add_command(&command),
+        Action::Delete(command) => delete_command(&command.name),
+        Action::Get(command) => get_command(&command.name),
+        Action::List(command) => list_command(&command),
+    }
 }
