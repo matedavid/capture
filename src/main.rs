@@ -86,7 +86,7 @@ fn add_command(command: &AddCommand) {
         }
     }
 
-    cap.print();
+    capture::bookmark::create(&command.name, &cap.result);
 }
 
 fn delete_command(name: &String) {

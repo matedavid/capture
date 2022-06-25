@@ -5,6 +5,7 @@ use std::{
 };
 
 mod rules;
+pub mod bookmark;
 
 fn read_lines<P>(path: P) -> io::Result<io::Lines<io::BufReader<File>>>
 where
@@ -20,7 +21,7 @@ where
 pub struct Capture {
     rule: rules::Rule,
     path_str: String,
-    result: Vec<String>,
+    pub result: Vec<String>,
 }
 
 impl Capture {
@@ -146,10 +147,6 @@ impl Capture {
 
         Ok(())
     }
-
-    pub fn bookmark(&self, name: &String) {}
-
-    pub fn snippet(&self, output_path: &path::Path) {}
 
     pub fn print(&self) {
         for line in &self.result {
