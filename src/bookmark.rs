@@ -1,56 +1,119 @@
 use sqlite;
-use std::{fs::File, io::Write};
+use std::{
+    fs::File,
+    io::{self, Write},
+};
+
+use crate::read_lines;
 
 const INDEX_FILE_PATH: &str = ".capture/index.sql";
-
-fn get_connection() -> Result<sqlite::Connection, sqlite::Error> {
-    sqlite::open(INDEX_FILE_PATH)
+fn get_connection() -> io::Result<sqlite::Connection> {
+    match sqlite::open(INDEX_FILE_PATH) {
+        Ok(conn) => Ok(conn),
+        Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
+    }
 }
 
 pub fn setup() {
     let conn = get_connection().unwrap();
-    conn.execute("CREATE TABLE bookmarks (id TEXT PRIMARY KEY, name TEXT);").unwrap();
+    conn.execute("CREATE TABLE bookmarks (id TEXT PRIMARY KEY, name TEXT);")
+        .unwrap();
 }
 
-pub fn create(name: &String, lines: &Vec<String>) {
-    // TODO: Instead of saving file with bookmark name, hash it
-    // and use the identifier as id and file name. 
-
-    let path = format!(".capture/{}", name);
-    let mut file = File::create(&path).unwrap();
-
-    for line in lines {
-        let line = format!("{}\n", line);
-        file.write(line.as_bytes()).unwrap();
-    }
-
-    let conn = get_connection().unwrap();
-
-    let statement = format!("INSERT INTO bookmarks VALUES ('{}', '{}');", name, name);
-    conn.execute(&statement).unwrap();
-}
-
-pub fn exists(name: &String) -> bool {
-    todo!();
-}
-
-pub fn list() {
-    let conn = get_connection().unwrap();
-
-    conn.iterate("SELECT * FROM bookmarks;", |pairs| {
-        let id = pairs[0].1.unwrap();
-        let name = pairs[1].1.unwrap();
-
-        println!("{} {}", id, name);
-        true
-    }).unwrap();
-}
-
-/*
 struct Bookmark {
     id: String,
     name: String,
     content: Vec<String>,
-    path: String,
 }
-*/
+
+fn get_bookmarks() -> io::Result<Vec<Bookmark>> {
+    let conn = get_connection()?;
+
+    let mut bookmarks = Vec::new();
+
+    match conn.iterate("SELECT * FROM bookmarks;", |pairs| {
+        let id = pairs[0].1.unwrap();
+        let name = pairs[1].1.unwrap();
+
+        let path = format!(".capture/{}", id);
+        let content: Vec<String> = read_lines(path)
+            .unwrap()
+            .into_iter()
+            .map(|f| f.unwrap())
+            .collect();
+
+        let bookmark = Bookmark {
+            id: String::from(id),
+            name: String::from(name),
+            content,
+        };
+        bookmarks.push(bookmark);
+
+        true
+    }) {
+        Ok(()) => Ok(bookmarks),
+        Err(e) => return Err(io::Error::new(io::ErrorKind::Other, e)),
+    }
+}
+
+fn exists(name: &String) -> io::Result<bool> {
+    let mut num_matches: usize = 0;
+
+    let conn = get_connection()?;
+    let statement = format!("SELECT * FROM bookmarks WHERE name = '{}'", name);
+
+    match conn.iterate(statement, |_| {
+        num_matches += 1;
+
+        true
+    }) {
+        Ok(()) => true,
+        Err(e) => return Err(io::Error::new(io::ErrorKind::Other, e)),
+    };
+
+    if num_matches > 1 {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            "More than one bookmark with the same name",
+        ));
+    }
+
+    Ok(num_matches == 1)
+}
+
+pub fn create(name: &String, lines: &Vec<String>) -> io::Result<()> {
+    // TODO: Instead of saving file with bookmark name, hash it
+    // and use the identifier as id and file name.
+
+    let path = format!(".capture/{}", name);
+    let mut file = File::create(&path)?;
+
+    for line in lines {
+        let line = format!("{}\n", line);
+        file.write(line.as_bytes())?;
+    }
+
+    let conn = get_connection()?;
+
+    let statement = format!("INSERT INTO bookmarks VALUES ('{}', '{}');", name, name);
+    match conn.execute(&statement) {
+        Ok(()) => Ok(()),
+        Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
+    }
+}
+
+pub fn delete(name: &String) -> io::Result<()> {
+    todo!();
+}
+
+pub fn list() {
+    let bookmarks = get_bookmarks().unwrap();
+
+    for b in bookmarks {
+        println!("Bookmark: {} - {}", b.name, b.id);
+        for line in b.content {
+            println!("{}", line);
+        }
+        print!("\n");
+    }
+}
