@@ -4,7 +4,7 @@ use std::{
     io::{self, Write},
 };
 
-use crate::read_lines;
+use crate::utils;
 
 const INDEX_FILE_PATH: &str = ".capture/index.sql";
 fn get_connection() -> io::Result<sqlite::Connection> {
@@ -36,9 +36,8 @@ fn get_bookmarks() -> io::Result<Vec<Bookmark>> {
         let name = pairs[1].1.unwrap();
 
         let path = format!(".capture/{}", id);
-        let content: Vec<String> = read_lines(path)
+        let content: Vec<String> = utils::read_lines(path)
             .unwrap()
-            .into_iter()
             .map(|f| f.unwrap())
             .collect();
 
@@ -82,11 +81,11 @@ fn exists(name: &String) -> io::Result<bool> {
 }
 
 pub fn create(name: &String, lines: &Vec<String>) -> io::Result<()> {
-    // TODO: Instead of saving file with bookmark name, hash it
-    // and use the identifier as id and file name.
+    let id = utils::merkle_tree_hash(&lines);
 
-    let path = format!(".capture/{}", name);
+    let path = format!(".capture/{}", id);
     let mut file = File::create(&path)?;
+
 
     for line in lines {
         let line = format!("{}\n", line);
@@ -95,7 +94,7 @@ pub fn create(name: &String, lines: &Vec<String>) -> io::Result<()> {
 
     let conn = get_connection()?;
 
-    let statement = format!("INSERT INTO bookmarks VALUES ('{}', '{}');", name, name);
+    let statement = format!("INSERT INTO bookmarks VALUES ('{}', '{}');", id, name);
     match conn.execute(&statement) {
         Ok(()) => Ok(()),
         Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),

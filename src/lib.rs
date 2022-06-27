@@ -6,17 +6,7 @@ use std::{
 
 mod rules;
 pub mod bookmark;
-
-fn read_lines<P>(path: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<path::Path>,
-{
-    let file = File::open(&path)?;
-    let reader = io::BufReader::new(file);
-
-    let lines = reader.lines();
-    Ok(lines)
-}
+mod utils;
 
 pub struct Capture {
     rule: rules::Rule,
@@ -54,7 +44,7 @@ impl Capture {
 
         let mut num_delimiters: usize = 0;
 
-        let lines = read_lines(&self.path_str)?;
+        let lines = utils::read_lines(&self.path_str)?;
         for (idx, line) in lines.enumerate() {
             let line = line?;
             if self.rule.contains_function(&line, &name) {
@@ -93,7 +83,7 @@ impl Capture {
             ));
         }
 
-        let lines = read_lines(&self.path_str)?;
+        let lines = utils::read_lines(&self.path_str)?;
         let mut result_lines = Vec::new();
 
         let mut min_leading_spaces = -1;
