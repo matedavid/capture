@@ -49,9 +49,13 @@ struct ListCommand {
 
 #[derive(clap::Subcommand, Debug)]
 enum Action {
+    /// Create new bookmark
     Add(AddCommand),
+    /// Delete an existing bookmark
     Delete(DeleteCommand),
+    /// Get an existing bookmark
     Get(GetCommand),
+    /// List all saved bookmarks
     List(ListCommand),
     //Snippet,
 }
@@ -98,7 +102,7 @@ fn get_command(name: &String) {
 }
 
 fn list_command(name: &ListCommand) {
-    unimplemented!();
+    capture::bookmark::list();
 }
 
 fn main() {
