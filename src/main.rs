@@ -94,11 +94,14 @@ fn add_command(command: &AddCommand) {
 }
 
 fn delete_command(name: &String) {
-    unimplemented!();
+    match capture::bookmark::delete(&name) {
+        Ok(()) => println!("Bookmark '{}' deleted successfully", name),
+        Err(e) => eprintln!("Error deleting bookmark: {}", e),
+    }
 }
 
 fn get_command(name: &String) {
-    let bk = capture::bookmark::get(&name).unwrap();
+    let bk = capture::bookmark::get_bookmark(&name).unwrap();
     match bk {
         Some(bk) => bk.print(true),
         None => println!("Bookmark '{}' does not exist", name),
@@ -106,7 +109,7 @@ fn get_command(name: &String) {
 }
 
 fn list_command(command: &ListCommand) {
-    let bookmarks = capture::bookmark::get_bookmarks().unwrap();
+    let bookmarks = capture::bookmark::get_all_bookmarks().unwrap();
     for bk in bookmarks {
         bk.print(!command.oneline);
     }
