@@ -100,7 +100,7 @@ fn delete_command(name: &String) {
 fn get_command(name: &String) {
     let bk = capture::bookmark::get(&name).unwrap();
     match bk {
-        Some(bk) => println!("{}", bk),
+        Some(bk) => bk.print(true),
         None => println!("Bookmark '{}' does not exist", name),
     }
 }

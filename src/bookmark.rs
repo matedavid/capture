@@ -1,6 +1,5 @@
 use sqlite;
 use std::{
-    fmt::{self, write},
     fs::File,
     io::{self, Write},
 };
@@ -52,18 +51,6 @@ impl Bookmark {
                 println!("{}", line);
             }
         }
-    }
-}
-
-impl fmt::Display for Bookmark {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "Bookmark: {} - {}\n", self.name, self.id)?;
-
-        for line in &self.content {
-            write!(f, "{}\n", line)?;
-        }
-
-        Ok(())
     }
 }
 
