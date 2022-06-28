@@ -44,6 +44,15 @@ impl Bookmark {
             content,
         }
     }
+
+    pub fn print(&self, display_content: bool) {
+        println!("Bookmark: {} - {}", self.name, self.id);
+        if display_content {
+            for line in &self.content {
+                println!("{}", line);
+            }
+        }
+    }
 }
 
 impl fmt::Display for Bookmark {
@@ -55,22 +64,6 @@ impl fmt::Display for Bookmark {
         }
 
         Ok(())
-    }
-}
-
-fn get_bookmarks() -> io::Result<Vec<Bookmark>> {
-    let conn = get_connection()?;
-
-    let mut bookmarks = Vec::new();
-
-    match conn.iterate("SELECT * FROM bookmarks;", |pairs| {
-        let bookmark = Bookmark::load(&pairs);
-        bookmarks.push(bookmark);
-
-        true
-    }) {
-        Ok(()) => Ok(bookmarks),
-        Err(e) => return Err(io::Error::new(io::ErrorKind::Other, e)),
     }
 }
 
@@ -140,9 +133,18 @@ pub fn get(name: &String) -> io::Result<Option<Bookmark>> {
     Ok(bookmark)
 }
 
-pub fn list() {
-    let bookmarks = get_bookmarks().unwrap();
-    for b in bookmarks {
-        println!("{}", b);
+pub fn get_bookmarks() -> io::Result<Vec<Bookmark>> {
+    let conn = get_connection()?;
+
+    let mut bookmarks = Vec::new();
+
+    match conn.iterate("SELECT * FROM bookmarks;", |pairs| {
+        let bookmark = Bookmark::load(&pairs);
+        bookmarks.push(bookmark);
+
+        true
+    }) {
+        Ok(()) => Ok(bookmarks),
+        Err(e) => return Err(io::Error::new(io::ErrorKind::Other, e)),
     }
 }

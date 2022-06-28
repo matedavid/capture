@@ -105,8 +105,11 @@ fn get_command(name: &String) {
     }
 }
 
-fn list_command(name: &ListCommand) {
-    capture::bookmark::list();
+fn list_command(command: &ListCommand) {
+    let bookmarks = capture::bookmark::get_bookmarks().unwrap();
+    for bk in bookmarks {
+        bk.print(!command.oneline);
+    }
 }
 
 fn main() {
