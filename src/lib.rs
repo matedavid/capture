@@ -4,8 +4,8 @@ use std::{
     path,
 };
 
-mod rules;
 pub mod bookmark;
+mod rules;
 mod utils;
 
 pub struct Capture {
@@ -136,6 +136,10 @@ impl Capture {
         }
 
         Ok(())
+    }
+
+    pub fn bookmark(&self, name: &String) -> io::Result<()> {
+        bookmark::create(&name, &self.result)
     }
 
     pub fn print(&self) {

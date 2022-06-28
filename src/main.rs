@@ -90,7 +90,7 @@ fn add_command(command: &AddCommand) {
         }
     }
 
-    capture::bookmark::create(&command.name, &cap.result).unwrap();
+    cap.bookmark(&command.name).unwrap();
 }
 
 fn delete_command(name: &String) {
