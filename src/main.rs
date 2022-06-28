@@ -90,7 +90,10 @@ fn add_command(command: &AddCommand) {
         }
     }
 
-    cap.bookmark(&command.name).unwrap();
+    match cap.bookmark(&command.name) {
+        Ok(()) => println!("Successfully created bookmark: '{}'", command.name),
+        Err(e) => eprintln!("Error creating bookmark: {}", e)
+    };
 }
 
 fn delete_command(name: &String) {
