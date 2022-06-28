@@ -98,7 +98,11 @@ fn delete_command(name: &String) {
 }
 
 fn get_command(name: &String) {
-    unimplemented!();
+    let bk = capture::bookmark::get(&name).unwrap();
+    match bk {
+        Some(bk) => println!("{}", bk),
+        None => println!("Bookmark '{}' does not exist", name),
+    }
 }
 
 fn list_command(name: &ListCommand) {

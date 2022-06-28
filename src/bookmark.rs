@@ -1,5 +1,6 @@
 use sqlite;
 use std::{
+    fmt::{self, write},
     fs::File,
     io::{self, Write},
 };
@@ -20,10 +21,41 @@ pub fn setup() {
         .unwrap();
 }
 
-struct Bookmark {
-    id: String,
-    name: String,
-    content: Vec<String>,
+pub struct Bookmark {
+    pub id: String,
+    pub name: String,
+    pub content: Vec<String>,
+}
+
+impl Bookmark {
+    fn load(pair: &[(&str, Option<&str>)]) -> Self {
+        let id = pair[0].1.unwrap();
+        let name = pair[1].1.unwrap();
+
+        let path = format!(".capture/{}", id);
+        let content: Vec<String> = utils::read_lines(path)
+            .unwrap()
+            .map(|f| f.unwrap())
+            .collect();
+
+        Bookmark {
+            id: String::from(id),
+            name: String::from(name),
+            content,
+        }
+    }
+}
+
+impl fmt::Display for Bookmark {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "Bookmark: {} - {}\n", self.name, self.id)?;
+
+        for line in &self.content {
+            write!(f, "{}\n", line)?;
+        }
+
+        Ok(())
+    }
 }
 
 fn get_bookmarks() -> io::Result<Vec<Bookmark>> {
@@ -32,20 +64,7 @@ fn get_bookmarks() -> io::Result<Vec<Bookmark>> {
     let mut bookmarks = Vec::new();
 
     match conn.iterate("SELECT * FROM bookmarks;", |pairs| {
-        let id = pairs[0].1.unwrap();
-        let name = pairs[1].1.unwrap();
-
-        let path = format!(".capture/{}", id);
-        let content: Vec<String> = utils::read_lines(path)
-            .unwrap()
-            .map(|f| f.unwrap())
-            .collect();
-
-        let bookmark = Bookmark {
-            id: String::from(id),
-            name: String::from(name),
-            content,
-        };
+        let bookmark = Bookmark::load(&pairs);
         bookmarks.push(bookmark);
 
         true
@@ -86,7 +105,6 @@ pub fn create(name: &String, lines: &Vec<String>) -> io::Result<()> {
     let path = format!(".capture/{}", id);
     let mut file = File::create(&path)?;
 
-
     for line in lines {
         let line = format!("{}\n", line);
         file.write(line.as_bytes())?;
@@ -105,14 +123,26 @@ pub fn delete(name: &String) -> io::Result<()> {
     todo!();
 }
 
+pub fn get(name: &String) -> io::Result<Option<Bookmark>> {
+    let conn = get_connection()?;
+
+    let mut bookmark: Option<Bookmark> = None;
+
+    let statement = format!("SELECT * FROM bookmarks WHERE name = '{}'", name);
+    match conn.iterate(statement, |pairs| {
+        bookmark = Some(Bookmark::load(&pairs));
+        true
+    }) {
+        Ok(()) => true,
+        Err(e) => return Err(io::Error::new(io::ErrorKind::Other, e)),
+    };
+
+    Ok(bookmark)
+}
+
 pub fn list() {
     let bookmarks = get_bookmarks().unwrap();
-
     for b in bookmarks {
-        println!("Bookmark: {} - {}", b.name, b.id);
-        for line in b.content {
-            println!("{}", line);
-        }
-        print!("\n");
+        println!("{}", b);
     }
 }
