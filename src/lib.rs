@@ -66,16 +66,18 @@ impl Capture {
 
         if start_line == 0 && end_line == 0 {
             let err_msg = format!("Function '{}' not found in {}", name, self.path_str);
-            return Err(io::Error::new(
-                io::ErrorKind::NotFound,
-                err_msg
-            ));
+            return Err(io::Error::new(io::ErrorKind::NotFound, err_msg));
         }
 
         self.from_interval(start_line, end_line, include_comments)
     }
 
-    pub fn from_interval(&mut self, start: usize, end: usize, include_comments: bool) -> io::Result<()> {
+    pub fn from_interval(
+        &mut self,
+        start: usize,
+        end: usize,
+        include_comments: bool,
+    ) -> io::Result<()> {
         if !self.result.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -87,41 +89,61 @@ impl Capture {
         let mut result_lines = Vec::new();
 
         let mut min_leading_spaces = -1;
+        let mut number_multiline_comment: usize = 0;
 
         for (idx, line) in lines.enumerate() {
-            let line = line?;
-            if !include_comments && self.rule.contains_comment(&line) {
+            let line_number = idx + 1;
+            if line_number < start || line_number > end {
                 continue;
             }
 
-            let line_number = idx + 1;
-            if line_number >= start && line_number <= end {
-                // Compute number of leading spaces for later cleaning
-                let leading_spaces = {
-                    let mut number = 0;
-                    for c in line.chars() {
-                        if c == ' ' {
-                            number += 1;
-                        } else if c != ' ' {
-                            break;
-                        }
-                    }
+            let line = line?;
 
-                    if line.is_empty() {
-                        min_leading_spaces
-                    } else {
-                        number
+            if !include_comments {
+                match self.rule.contains_comment(&line) {
+                    Some(rules::CommentType::SingleLine) => continue,
+                    Some(rules::CommentType::MultiLineStart) => {
+                        number_multiline_comment += 1;
+                        continue;
                     }
-                };
+                    Some(rules::CommentType::MultiLineEnd) => {
+                        number_multiline_comment -= 1;
+                        continue;
+                    }
+                    Some(rules::CommentType::MultiLineComplete) => continue,
+                    None => (),
+                }
+            }
 
-                if min_leading_spaces == -1
-                    || std::cmp::min(min_leading_spaces, leading_spaces) == leading_spaces
-                {
-                    min_leading_spaces = leading_spaces;
+            if number_multiline_comment > 0 {
+                continue;
+            }
+
+            // Compute number of leading spaces for later cleaning
+            let leading_spaces = {
+                let mut number = 0;
+                for c in line.chars() {
+                    if c == ' ' {
+                        number += 1;
+                    } else if c != ' ' {
+                        break;
+                    }
                 }
 
-                result_lines.push(line.clone());
+                if line.is_empty() {
+                    min_leading_spaces
+                } else {
+                    number
+                }
+            };
+
+            if min_leading_spaces == -1
+                || std::cmp::min(min_leading_spaces, leading_spaces) == leading_spaces
+            {
+                min_leading_spaces = leading_spaces;
             }
+
+            result_lines.push(line.clone());
         }
 
         // Clean leading spaces based on the minimum number of leading spaces

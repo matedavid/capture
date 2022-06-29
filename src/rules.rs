@@ -13,10 +13,19 @@ enum Language {
     Unknown,
 }
 
+#[derive(Debug, PartialEq, Eq)]
+pub enum CommentType {
+    SingleLine,
+    MultiLineStart,
+    MultiLineEnd,
+    MultiLineComplete,
+}
+
 pub struct Rule {
     language: Language,
     function_syntax: regex::Regex,
-    comment_syntax: regex::Regex,
+    single_comment_syntax: regex::Regex,
+    multi_comment_syntax: (regex::Regex, regex::Regex),
     pub delimiter: (String, String),
 }
 
@@ -49,21 +58,38 @@ impl Rule {
         }
         .unwrap();
 
-        let comment_syntax = match &language {
+        let single_comment_syntax = match &language {
             Language::Rust
             | Language::Javascript
             | Language::Typescript
             | Language::Golang
             | Language::C => regex::Regex::new(r" *//.*"),
-            Language::Python => todo!(),
-            _ => regex::Regex::new(r".*")
+            Language::Python => regex::Regex::new(r"#.*"),
+            _ => regex::Regex::new(r".*"),
         }
         .unwrap();
+
+        let multi_comment_syntax = match &language {
+            Language::Rust
+            | Language::Javascript
+            | Language::Typescript
+            | Language::Golang
+            | Language::C => (
+                regex::Regex::new(r"/\*.*(\*/)?"),
+                regex::Regex::new(r".*\*/"),
+            ),
+            Language::Python => todo!(),
+            _ => (regex::Regex::new(r".*"), regex::Regex::new(r".*")),
+        };
 
         Some(Rule {
             language,
             function_syntax,
-            comment_syntax,
+            single_comment_syntax,
+            multi_comment_syntax: (
+                multi_comment_syntax.0.unwrap(),
+                multi_comment_syntax.1.unwrap(),
+            ),
             delimiter: (String::from("{"), String::from("}")),
         })
     }
@@ -79,8 +105,20 @@ impl Rule {
         }
     }
 
-    pub fn contains_comment(&self, line: &String) -> bool {
-        self.comment_syntax.is_match(&line)
+    pub fn contains_comment(&self, line: &String) -> Option<CommentType> {
+        if self.single_comment_syntax.is_match(&line) {
+            return Some(CommentType::SingleLine);
+        } else if self.multi_comment_syntax.0.is_match(&line)
+            && self.multi_comment_syntax.1.is_match(&line)
+        {
+            return Some(CommentType::MultiLineComplete);
+        } else if self.multi_comment_syntax.0.is_match(&line) {
+            return Some(CommentType::MultiLineStart);
+        } else if self.multi_comment_syntax.1.is_match(&line) {
+            return Some(CommentType::MultiLineEnd);
+        }
+
+        None
     }
 }
 
