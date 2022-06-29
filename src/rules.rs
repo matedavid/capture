@@ -22,7 +22,7 @@ pub enum CommentType {
 }
 
 pub struct Rule {
-    language: Language,
+    _language: Language, // Using for tests
     function_syntax: regex::Regex,
     single_comment_syntax: regex::Regex,
     multi_comment_syntax: (regex::Regex, regex::Regex),
@@ -83,7 +83,7 @@ impl Rule {
         };
 
         Some(Rule {
-            language,
+            _language: language,
             function_syntax,
             single_comment_syntax,
             multi_comment_syntax: (
@@ -166,7 +166,7 @@ mod tests {
             let path = path::Path::new(&lang);
             let rule = Rule::new(&path).unwrap();
 
-            assert_eq!(rule.language, expected);
+            assert_eq!(rule._language, expected);
         }
     }
 
