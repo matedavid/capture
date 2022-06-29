@@ -93,8 +93,6 @@ pub fn create(name: &String, lines: &Vec<String>) -> io::Result<()> {
         return Err(io::Error::new(io::ErrorKind::AlreadyExists, err_msg));
     }
 
-    // TODO: Should check if bookmark with same name exists before creating.
-
     let path = format!(".capture/{}", id);
     let mut file = fs::File::create(&path)?;
 

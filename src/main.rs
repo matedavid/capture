@@ -24,7 +24,11 @@ struct AddCommand {
     #[clap(short, long, value_parser)]
     file: String,
 
-    /// How to create bookmark
+    /// If the bookmark should include comments or skip them
+    #[clap(long)]
+    no_comments: bool,
+
+    /// How to create the bookmark
     #[clap(subcommand)]
     action: CaptureType,
 }
@@ -43,6 +47,7 @@ struct GetCommand {
 
 #[derive(clap::Parser, Debug)]
 struct ListCommand {
+    /// Only display name and id of the bookmark
     #[clap(long)]
     oneline: bool,
 }
@@ -72,7 +77,7 @@ fn add_command(command: &AddCommand) {
 
     let mut cap = capture::Capture::new(&path).unwrap();
     match &command.action {
-        CaptureType::Function { name } => match cap.from_function(&name) {
+        CaptureType::Function { name } => match cap.from_function(&name, !command.no_comments) {
             Ok(()) => (),
             Err(e) => {
                 eprintln!("Error creating bookmark from function: {}", e);
@@ -94,7 +99,7 @@ fn add_command(command: &AddCommand) {
                 return;
             }
 
-            cap.from_interval(start, end).unwrap();
+            cap.from_interval(start, end, !command.no_comments).unwrap();
         }
     }
 

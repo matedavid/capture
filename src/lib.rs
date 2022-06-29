@@ -30,7 +30,7 @@ impl Capture {
         })
     }
 
-    pub fn from_function(&mut self, name: &String) -> io::Result<()> {
+    pub fn from_function(&mut self, name: &String, include_comments: bool) -> io::Result<()> {
         if !self.result.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -72,10 +72,10 @@ impl Capture {
             ));
         }
 
-        self.from_interval(start_line, end_line)
+        self.from_interval(start_line, end_line, include_comments)
     }
 
-    pub fn from_interval(&mut self, start: usize, end: usize) -> io::Result<()> {
+    pub fn from_interval(&mut self, start: usize, end: usize, include_comments: bool) -> io::Result<()> {
         if !self.result.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -90,6 +90,10 @@ impl Capture {
 
         for (idx, line) in lines.enumerate() {
             let line = line?;
+            if !include_comments && self.rule.contains_comment(&line) {
+                continue;
+            }
+
             let line_number = idx + 1;
             if line_number >= start && line_number <= end {
                 // Compute number of leading spaces for later cleaning

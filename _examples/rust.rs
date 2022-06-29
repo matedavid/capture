@@ -9,6 +9,10 @@ fn example_function_1() -> usize {
 // with another line below
 fn example_function_2() {
     // Nothing in here
+    let x = 4;
+    /* Another comment */
+    /* Multi-line
+        comment */
 }
 
     fn indented_function() {

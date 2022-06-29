@@ -16,7 +16,7 @@ enum Language {
 pub struct Rule {
     language: Language,
     function_syntax: regex::Regex,
-    // comment_syntax: regex::Regex,
+    comment_syntax: regex::Regex,
     pub delimiter: (String, String),
 }
 
@@ -46,11 +46,24 @@ impl Rule {
             // not the complete 'Class::function_name'
             Language::C => regex::Regex::new(r"^ *[a-zA-Z0-9_*& ]+(?: |::)([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
             _ => regex::Regex::new(r".*"),
-        }.unwrap();
+        }
+        .unwrap();
+
+        let comment_syntax = match &language {
+            Language::Rust
+            | Language::Javascript
+            | Language::Typescript
+            | Language::Golang
+            | Language::C => regex::Regex::new(r" *//.*"),
+            Language::Python => todo!(),
+            _ => regex::Regex::new(r".*")
+        }
+        .unwrap();
 
         Some(Rule {
             language,
             function_syntax,
+            comment_syntax,
             delimiter: (String::from("{"), String::from("}")),
         })
     }
@@ -64,6 +77,10 @@ impl Rule {
             Some(cap) => cap.get(1).unwrap().as_str() == function_name.as_str(),
             None => false,
         }
+    }
+
+    pub fn contains_comment(&self, line: &String) -> bool {
+        self.comment_syntax.is_match(&line)
     }
 }
 
