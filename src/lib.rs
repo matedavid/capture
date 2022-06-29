@@ -1,6 +1,5 @@
 use std::{
-    fs::File,
-    io::{self, BufRead},
+    io::{self},
     path,
 };
 
@@ -66,9 +65,10 @@ impl Capture {
         }
 
         if start_line == 0 && end_line == 0 {
+            let err_msg = format!("Function '{}' not found in {}", name, self.path_str);
             return Err(io::Error::new(
                 io::ErrorKind::NotFound,
-                "Function not found in file",
+                err_msg
             ));
         }
 

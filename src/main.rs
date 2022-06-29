@@ -72,18 +72,26 @@ fn add_command(command: &AddCommand) {
 
     let mut cap = capture::Capture::new(&path).unwrap();
     match &command.action {
-        CaptureType::Function { name } => cap.from_function(&name).unwrap(),
+        CaptureType::Function { name } => match cap.from_function(&name) {
+            Ok(()) => (),
+            Err(e) => {
+                eprintln!("Error creating bookmark from function: {}", e);
+                return;
+            }
+        },
         CaptureType::Interval { interval } => {
             let re = regex::Regex::new(r"[0-9]+:[0-9]+").unwrap();
             if !re.is_match(interval) {
-                panic!("Interval does not have correct format");
+                eprintln!("Interval does not have correct format");
+                return;
             }
 
             let (start, end) = interval.split_once(":").unwrap();
             let start: usize = start.parse().unwrap();
             let end: usize = end.parse().unwrap();
             if end < start {
-                panic!("End line must be greater or equal than start line");
+                eprintln!("End line must be greater or equal than start line");
+                return;
             }
 
             cap.from_interval(start, end).unwrap();
@@ -92,7 +100,7 @@ fn add_command(command: &AddCommand) {
 
     match cap.bookmark(&command.name) {
         Ok(()) => println!("Successfully created bookmark: '{}'", command.name),
-        Err(e) => eprintln!("Error creating bookmark: {}", e)
+        Err(e) => eprintln!("Error creating bookmark: {}", e),
     };
 }
 
@@ -107,7 +115,7 @@ fn get_command(name: &String) {
     let bk = capture::bookmark::get_bookmark(&name).unwrap();
     match bk {
         Some(bk) => bk.print(true),
-        None => println!("Bookmark '{}' does not exist", name),
+        None => eprintln!("Bookmark '{}' does not exist", name),
     }
 }
 

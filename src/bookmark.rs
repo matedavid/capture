@@ -88,6 +88,11 @@ fn exists(name: &String) -> io::Result<bool> {
 pub fn create(name: &String, lines: &Vec<String>) -> io::Result<()> {
     let id = utils::merkle_tree_hash(&lines);
 
+    if exists(&name)? {
+        let err_msg = format!("Bookmark with name: '{}' already exists", name);
+        return Err(io::Error::new(io::ErrorKind::AlreadyExists, err_msg));
+    }
+
     // TODO: Should check if bookmark with same name exists before creating.
 
     let path = format!(".capture/{}", id);
