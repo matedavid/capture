@@ -1,7 +1,7 @@
 use regex;
 use std::path;
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 enum Language {
     Rust,
     Python,
@@ -13,7 +13,7 @@ enum Language {
     Unknown,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq)]
 pub enum CommentType {
     SingleLine,
     MultiLineStart,
@@ -24,8 +24,8 @@ pub enum CommentType {
 pub struct Rule {
     _language: Language, // Using for tests
     function_syntax: regex::Regex,
-    single_comment_syntax: regex::Regex,
-    multi_comment_syntax: (regex::Regex, regex::Regex),
+    singleline_comment: String,
+    multiline_comment: (String, String),
     pub delimiter: (String, String),
 }
 
@@ -58,38 +58,27 @@ impl Rule {
         }
         .unwrap();
 
-        let single_comment_syntax = match &language {
+        let comment_delimiters = match &language {
             Language::Rust
             | Language::Javascript
             | Language::Typescript
             | Language::Golang
-            | Language::C => regex::Regex::new(r" *//.*"),
-            Language::Python => regex::Regex::new(r"#.*"),
-            _ => regex::Regex::new(r".*"),
-        }
-        .unwrap();
-
-        let multi_comment_syntax = match &language {
-            Language::Rust
-            | Language::Javascript
-            | Language::Typescript
-            | Language::Golang
-            | Language::C => (
-                regex::Regex::new(r"/\*.*(\*/)?"),
-                regex::Regex::new(r".*\*/"),
-            ),
-            Language::Python => todo!(),
-            _ => (regex::Regex::new(r".*"), regex::Regex::new(r".*")),
+            | Language::C => ("//", "/*", "*/"),
+            Language::Python => ("#", r#"""""#, r#"""""#),
+            _ => ("", "", ""),
         };
+
+        let singleline_comment = comment_delimiters.0.to_string();
+        let multiline_comment = (
+            comment_delimiters.1.to_string(),
+            comment_delimiters.2.to_string(),
+        );
 
         Some(Rule {
             _language: language,
             function_syntax,
-            single_comment_syntax,
-            multi_comment_syntax: (
-                multi_comment_syntax.0.unwrap(),
-                multi_comment_syntax.1.unwrap(),
-            ),
+            singleline_comment,
+            multiline_comment,
             delimiter: (String::from("{"), String::from("}")),
         })
     }
@@ -106,15 +95,16 @@ impl Rule {
     }
 
     pub fn contains_comment(&self, line: &String) -> Option<CommentType> {
-        if self.single_comment_syntax.is_match(&line) {
+        let trimmed = line.trim();
+        if trimmed.starts_with(&self.singleline_comment) {
             return Some(CommentType::SingleLine);
-        } else if self.multi_comment_syntax.0.is_match(&line)
-            && self.multi_comment_syntax.1.is_match(&line)
+        } else if trimmed.starts_with(&self.multiline_comment.0)
+            && trimmed.ends_with(&self.multiline_comment.1)
         {
             return Some(CommentType::MultiLineComplete);
-        } else if self.multi_comment_syntax.0.is_match(&line) {
+        } else if trimmed.starts_with(&self.multiline_comment.0) {
             return Some(CommentType::MultiLineStart);
-        } else if self.multi_comment_syntax.1.is_match(&line) {
+        } else if trimmed.ends_with(&self.multiline_comment.1) {
             return Some(CommentType::MultiLineEnd);
         }
 
@@ -124,7 +114,7 @@ impl Rule {
 
 #[cfg(test)]
 mod tests {
-    use super::{Language, Rule};
+    use super::{CommentType, Language, Rule};
     use std::path;
 
     fn rule_from_language(lang: Language) -> Rule {
@@ -161,7 +151,7 @@ mod tests {
         ];
 
         for (lang, expected) in languages {
-            let lang = String::from(lang);
+            let lang = lang.to_string();
 
             let path = path::Path::new(&lang);
             let rule = Rule::new(&path).unwrap();
@@ -223,7 +213,63 @@ mod tests {
 
         for (line, name, lang, expected) in functions {
             let rule = rule_from_language(lang);
-            let result = rule.contains_function(&String::from(line), &String::from(name));
+            let result = rule.contains_function(&line.to_string(), &name.to_string());
+            assert_eq!(result, expected);
+        }
+    }
+
+    #[test]
+    fn detects_comment() {
+        let comments = vec![
+            (
+                "// Single line comment",
+                Language::Rust,
+                Some(CommentType::SingleLine),
+            ),
+            ("No comment", Language::Rust, None),
+            (
+                "/* Multiline start",
+                Language::Golang,
+                Some(CommentType::MultiLineStart),
+            ),
+            (
+                "Multiline end */",
+                Language::C,
+                Some(CommentType::MultiLineEnd),
+            ),
+            (
+                "/* Multiline complete */",
+                Language::Typescript,
+                Some(CommentType::MultiLineComplete),
+            ),
+            // Python
+            (
+                "# Single line",
+                Language::Python,
+                Some(CommentType::SingleLine),
+            ),
+            (
+                r#"""" Multi line complete """"#,
+                Language::Python,
+                Some(CommentType::MultiLineComplete),
+            ),
+            (
+                r#"""" Multi line start"#,
+                Language::Python,
+                Some(CommentType::MultiLineStart),
+            ),
+            (
+                r#"Multi line end """"#,
+                Language::Python,
+                Some(CommentType::MultiLineEnd),
+            ),
+        ];
+
+        for (comment, lang, expected) in comments {
+            let comment = comment.to_string();
+
+            let rule = rule_from_language(lang);
+            let result = rule.contains_comment(&comment);
             assert_eq!(result, expected);
         }
     }

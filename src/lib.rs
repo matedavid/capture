@@ -99,9 +99,11 @@ impl Capture {
 
             let line = line?;
 
+            // Clean out comments if specified
             if !include_comments {
                 match self.rule.contains_comment(&line) {
-                    Some(rules::CommentType::SingleLine) => continue,
+                    Some(rules::CommentType::SingleLine)
+                    | Some(rules::CommentType::MultiLineComplete) => continue,
                     Some(rules::CommentType::MultiLineStart) => {
                         number_multiline_comment += 1;
                         continue;
@@ -110,7 +112,6 @@ impl Capture {
                         number_multiline_comment -= 1;
                         continue;
                     }
-                    Some(rules::CommentType::MultiLineComplete) => continue,
                     None => (),
                 }
             }

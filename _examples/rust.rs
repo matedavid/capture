@@ -13,6 +13,9 @@ fn example_function_2() {
     /* Another comment */
     /* Multi-line
         comment */
+    /*
+    Multi line new line
+    */
 }
 
     fn indented_function() {
