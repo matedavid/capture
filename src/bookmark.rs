@@ -3,6 +3,10 @@ use std::{
     fs,
     io::{self, Write},
 };
+use syntect;
+use syntect::highlighting::{Style, ThemeSet};
+use syntect::parsing::SyntaxSet;
+use lazy_static::lazy_static;
 
 use crate::language::Language;
 use crate::utils;
@@ -55,22 +59,23 @@ impl Bookmark {
     }
 
     pub fn print(&self, display_content: bool) {
-        use syntect::easy::HighlightLines;
-        use syntect::highlighting::{Style, ThemeSet};
-        use syntect::parsing::SyntaxSet;
-        use syntect::util::as_24_bit_terminal_escaped;
-
-        let ps = SyntaxSet::load_defaults_newlines();
-        let ts = ThemeSet::load_defaults();
-
-        let syntax = ps.find_syntax_by_extension(&self.lang.to_extension()).unwrap();
-        let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
-
         println!("Bookmark: {} - {}", self.name, self.id);
+
+        lazy_static! {
+            static ref PS: SyntaxSet = SyntaxSet::load_defaults_newlines();
+            static ref TS: ThemeSet = ThemeSet::load_defaults();
+        }
+        
         if display_content {
+
+            let syntax = PS
+                .find_syntax_by_extension(&self.lang.to_extension())
+                .unwrap();
+            let mut h = syntect::easy::HighlightLines::new(syntax, &TS.themes["base16-ocean.dark"]);
+
             for line in &self.content {
-                let ranges: Vec<(Style, &str)> = h.highlight_line(line, &ps).unwrap();
-                let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
+                let ranges: Vec<(Style, &str)> = h.highlight_line(line, &PS).unwrap();
+                let escaped = syntect::util::as_24_bit_terminal_escaped(&ranges[..], false);
 
                 println!("{}", escaped);
             }
