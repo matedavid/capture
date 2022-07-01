@@ -6,6 +6,7 @@ use std::{
 pub mod bookmark;
 mod rules;
 mod utils;
+mod language;
 
 pub struct Capture {
     rule: rules::Rule,
@@ -166,7 +167,7 @@ impl Capture {
     }
 
     pub fn bookmark(&self, name: &String) -> io::Result<()> {
-        bookmark::create(&name, &self.result)
+        bookmark::create(&name, &self.result, &self.rule.language)
     }
 
     pub fn print(&self) {

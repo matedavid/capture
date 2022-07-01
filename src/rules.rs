@@ -1,17 +1,6 @@
+use crate::language::Language;
 use regex;
 use std::path;
-
-#[derive(Debug, PartialEq)]
-enum Language {
-    Rust,
-    Python,
-    Javascript,
-    Typescript,
-    Golang,
-    C,
-
-    Unknown,
-}
 
 #[derive(Debug, PartialEq)]
 pub enum CommentType {
@@ -22,7 +11,7 @@ pub enum CommentType {
 }
 
 pub struct Rule {
-    _language: Language, // Using for tests
+    pub language: Language,
     function_syntax: regex::Regex,
     singleline_comment: String,
     multiline_comment: (String, String),
@@ -32,16 +21,7 @@ pub struct Rule {
 impl Rule {
     pub fn new(path: &path::Path) -> Option<Self> {
         let extension = path.extension()?.to_str().unwrap();
-
-        let language = match extension {
-            "rs" => Language::Rust,
-            "py" => Language::Python,
-            "js" => Language::Javascript,
-            "ts" => Language::Typescript,
-            "go" => Language::Golang,
-            "c" | "cpp" | "cc" => Language::C,
-            _ => Language::Unknown,
-        };
+        let language = Language::from_extension(&extension);
 
         let function_syntax = match &language {
             Language::Rust => regex::Regex::new(r"^ *fn *([a-zA-Z0-9_]+) *\(.*\) *(?:-> *[a-zA-Z0-9_]+ *)?\{? *$"),
@@ -75,7 +55,7 @@ impl Rule {
         );
 
         Some(Rule {
-            _language: language,
+            language,
             function_syntax,
             singleline_comment,
             multiline_comment,
@@ -117,7 +97,7 @@ mod tests {
     use super::{CommentType, Language, Rule};
     use std::path;
 
-    fn rule_from_language(lang: Language) -> Rule {
+    fn rule_fromlanguage(lang: Language) -> Rule {
         let rust_path = path::Path::new("rust.rs");
         let python_path = path::Path::new("python.py");
         let javascript_path = path::Path::new("javascript.js");
@@ -138,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn detects_language() {
+    fn detectslanguage() {
         let languages = vec![
             ("rust.rs", Language::Rust),
             ("python.py", Language::Python),
@@ -156,7 +136,7 @@ mod tests {
             let path = path::Path::new(&lang);
             let rule = Rule::new(&path).unwrap();
 
-            assert_eq!(rule._language, expected);
+            assert_eq!(rule.language, expected);
         }
     }
 
@@ -212,7 +192,7 @@ mod tests {
         ];
 
         for (line, name, lang, expected) in functions {
-            let rule = rule_from_language(lang);
+            let rule = rule_fromlanguage(lang);
             let result = rule.contains_function(&line.to_string(), &name.to_string());
             assert_eq!(result, expected);
         }
@@ -268,7 +248,7 @@ mod tests {
         for (comment, lang, expected) in comments {
             let comment = comment.to_string();
 
-            let rule = rule_from_language(lang);
+            let rule = rule_fromlanguage(lang);
             let result = rule.contains_comment(&comment);
             assert_eq!(result, expected);
         }

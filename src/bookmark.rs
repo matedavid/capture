@@ -4,6 +4,7 @@ use std::{
     io::{self, Write},
 };
 
+use crate::language::Language;
 use crate::utils;
 
 const DEFAULT_PATH: &str = ".capture";
@@ -18,13 +19,14 @@ fn get_connection() -> io::Result<sqlite::Connection> {
 
 pub fn setup() {
     let conn = get_connection().unwrap();
-    conn.execute("CREATE TABLE bookmarks (id TEXT PRIMARY KEY, name TEXT);")
+    conn.execute("CREATE TABLE bookmarks (id TEXT PRIMARY KEY, name TEXT, lang TEXT);")
         .unwrap();
 }
 
 pub struct Bookmark {
     pub id: String,
     pub name: String,
+    pub lang: Language,
     pub content: Vec<String>,
 }
 
@@ -32,6 +34,7 @@ impl Bookmark {
     fn load(pair: &[(&str, Option<&str>)]) -> Self {
         let id = pair[0].1.unwrap();
         let name = pair[1].1.unwrap();
+        let extension = pair[2].1.unwrap();
 
         let path = format!(".capture/{}", id);
         let content: Vec<String> = utils::read_lines(path)
@@ -40,9 +43,10 @@ impl Bookmark {
             .collect();
 
         Bookmark {
-            id: String::from(id),
-            name: String::from(name),
+            id: id.to_string(),
+            name: name.to_string(),
             content,
+            lang: Language::from_extension(extension),
         }
     }
 
@@ -51,10 +55,24 @@ impl Bookmark {
     }
 
     pub fn print(&self, display_content: bool) {
+        use syntect::easy::HighlightLines;
+        use syntect::highlighting::{Style, ThemeSet};
+        use syntect::parsing::SyntaxSet;
+        use syntect::util::as_24_bit_terminal_escaped;
+
+        let ps = SyntaxSet::load_defaults_newlines();
+        let ts = ThemeSet::load_defaults();
+
+        let syntax = ps.find_syntax_by_extension(&self.lang.to_extension()).unwrap();
+        let mut h = HighlightLines::new(syntax, &ts.themes["base16-ocean.dark"]);
+
         println!("Bookmark: {} - {}", self.name, self.id);
         if display_content {
             for line in &self.content {
-                println!("{}", line);
+                let ranges: Vec<(Style, &str)> = h.highlight_line(line, &ps).unwrap();
+                let escaped = as_24_bit_terminal_escaped(&ranges[..], false);
+
+                println!("{}", escaped);
             }
         }
     }
@@ -85,7 +103,7 @@ fn exists(name: &String) -> io::Result<bool> {
     Ok(num_matches == 1)
 }
 
-pub fn create(name: &String, lines: &Vec<String>) -> io::Result<()> {
+pub fn create(name: &String, lines: &Vec<String>, lang: &Language) -> io::Result<()> {
     let id = utils::merkle_tree_hash(&lines);
 
     if exists(&name)? {
@@ -103,7 +121,12 @@ pub fn create(name: &String, lines: &Vec<String>) -> io::Result<()> {
 
     let conn = get_connection()?;
 
-    let statement = format!("INSERT INTO bookmarks VALUES ('{}', '{}');", id, name);
+    let statement = format!(
+        "INSERT INTO bookmarks (id, name, lang) VALUES ('{}', '{}', '{}');",
+        id,
+        name,
+        lang.to_extension()
+    );
     match conn.execute(&statement) {
         Ok(()) => Ok(()),
         Err(e) => Err(io::Error::new(io::ErrorKind::Other, e)),
