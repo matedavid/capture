@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use sqlite;
 use std::{
     fs,
@@ -6,7 +7,6 @@ use std::{
 use syntect;
 use syntect::highlighting::{Style, ThemeSet};
 use syntect::parsing::SyntaxSet;
-use lazy_static::lazy_static;
 
 use crate::language::Language;
 use crate::utils;
@@ -61,12 +61,11 @@ impl Bookmark {
     pub fn print(&self, display_content: bool) {
         println!("Bookmark: {} - {}", self.name, self.id);
 
-        lazy_static! {
-            static ref PS: SyntaxSet = SyntaxSet::load_defaults_newlines();
-            static ref TS: ThemeSet = ThemeSet::load_defaults();
-        }
-        
         if display_content {
+            lazy_static! {
+                static ref PS: SyntaxSet = SyntaxSet::load_defaults_newlines();
+                static ref TS: ThemeSet = ThemeSet::load_defaults();
+            }
 
             let syntax = PS
                 .find_syntax_by_extension(&self.lang.to_extension())
@@ -79,6 +78,7 @@ impl Bookmark {
 
                 println!("{}", escaped);
             }
+            print!("\n");
         }
     }
 }
