@@ -91,10 +91,9 @@ fn exists(name: &String) -> io::Result<bool> {
 
     match conn.iterate(statement, |_| {
         num_matches += 1;
-
         true
     }) {
-        Ok(()) => true,
+        Ok(()) => (),
         Err(e) => return Err(io::Error::new(io::ErrorKind::Other, e)),
     };
 
@@ -168,7 +167,7 @@ pub fn get_bookmark(name: &String) -> io::Result<Option<Bookmark>> {
         bookmark = Some(Bookmark::load(&pairs));
         true
     }) {
-        Ok(()) => true,
+        Ok(()) => (),
         Err(e) => return Err(io::Error::new(io::ErrorKind::Other, e)),
     };
 
@@ -183,7 +182,6 @@ pub fn get_all_bookmarks() -> io::Result<Vec<Bookmark>> {
     match conn.iterate("SELECT * FROM bookmarks;", |pairs| {
         let bookmark = Bookmark::load(&pairs);
         bookmarks.push(bookmark);
-
         true
     }) {
         Ok(()) => Ok(bookmarks),

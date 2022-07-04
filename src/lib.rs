@@ -1,12 +1,9 @@
-use std::{
-    io::{self},
-    path,
-};
+use std::{io, path};
 
 pub mod bookmark;
+mod language;
 mod rules;
 mod utils;
-mod language;
 
 pub struct Capture {
     rule: rules::Rule,

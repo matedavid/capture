@@ -18,7 +18,7 @@ impl Language {
             "js" => Language::Javascript,
             "ts" => Language::Typescript,
             "go" => Language::Golang,
-            "c" | "cpp" | "cc" => Language::C,
+            "c" | "cpp" | "cc" | "h" | "hpp" => Language::C,
             _ => Language::Unknown,
         }
     }
@@ -35,4 +35,3 @@ impl Language {
         }
     }
 }
-
