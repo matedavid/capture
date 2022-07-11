@@ -1,11 +1,11 @@
-capture
+📸 capture
 ---
 
-Capture code snippets from the terminal to share or bookmark them.
+Save reusable code by capturing code snippets to share or bookmark them, all directly from the terminal.
 
 ### Currently supported languages
 * Rust
-* Python
+* Python (except creating snippet without comments)
 * Javascript/Typescript
 * Golang
 * C/C++
