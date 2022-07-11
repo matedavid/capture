@@ -24,7 +24,7 @@ impl Rule {
         let language = Language::from_extension(&extension);
 
         let function_syntax = match &language {
-            Language::Rust => regex::Regex::new(r"^ *fn *([a-zA-Z0-9_]+) *\(.*\) *(?:-> *[a-zA-Z0-9_]+ *)?\{? *$"),
+            Language::Rust => regex::Regex::new(r"^ *(?:pub)? *fn *([a-zA-Z0-9_]+).*\(.*\) *(?:-> *[a-zA-Z0-9_]+ *)?\{? *$"),
             Language::Python => regex::Regex::new(r"^ *def *([a-zA-Z0-9_]+) *\([.]*\) *: *$"),
             Language::Javascript => regex::Regex::new(
                 r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]+)? *(?:=>)? *\{? *$",
@@ -118,7 +118,7 @@ mod tests {
     }
 
     #[test]
-    fn detectslanguage() {
+    fn detects_language() {
         let languages = vec![
             ("rust.rs", Language::Rust),
             ("python.py", Language::Python),
@@ -155,6 +155,12 @@ mod tests {
                 "rust_function",
                 Language::Rust,
                 false,
+            ),
+            (
+                "pub fn new<N>(params: &N::Params) -> RawNotification {",
+                "new",
+                Language::Rust,
+                true,
             ),
             // Python
             ("def py_function():", "py_function", Language::Python, true),
