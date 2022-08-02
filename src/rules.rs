@@ -1,5 +1,4 @@
 use crate::language::Language;
-use regex;
 use std::path;
 
 #[derive(Debug, PartialEq)]
@@ -12,9 +11,6 @@ pub enum CommentType {
 
 pub struct Rule {
     pub language: Language,
-    function_syntax: regex::Regex,
-    singleline_comment: String,
-    multiline_comment: (String, String),
     pub delimiter: (String, String),
 }
 
@@ -23,68 +19,37 @@ impl Rule {
         let extension = path.extension()?.to_str().unwrap();
         let language = Language::from_extension(&extension);
 
-        let function_syntax = match &language {
-            Language::Rust => regex::Regex::new(r"^ *(?:pub)? *fn *([a-zA-Z0-9_]+).*\(.*\) *(?:-> *[a-zA-Z0-9_]+ *)?\{? *$"),
-            Language::Python => regex::Regex::new(r"^ *def *([a-zA-Z0-9_]+) *\([.]*\) *: *$"),
-            Language::Javascript => regex::Regex::new(
-                r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]+)? *(?:=>)? *\{? *$",
-            ),
-            Language::Typescript => regex::Regex::new(r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]*)? *(?:=>)? *\{? *$"),
-            Language::Golang => regex::Regex::new(r"^ *func *([a-zA-Z0-9_]+) *\(.*\) *(?:.*)? *\{? *$"),
-            // In C++, when creating snippet of class function, you only need to input the 'function_name',
-            // not the complete 'Class::function_name'
-            Language::C => regex::Regex::new(r"^ *[a-zA-Z0-9_*& ]+(?: |::)([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
-            _ => regex::Regex::new(r".*"),
-        }
-        .unwrap();
-
-        let comment_delimiters = match &language {
-            Language::Rust
-            | Language::Javascript
-            | Language::Typescript
-            | Language::Golang
-            | Language::C => ("//", "/*", "*/"),
-            Language::Python => ("#", r#"""""#, r#"""""#),
-            _ => ("", "", ""),
-        };
-
-        let singleline_comment = comment_delimiters.0.to_string();
-        let multiline_comment = (
-            comment_delimiters.1.to_string(),
-            comment_delimiters.2.to_string(),
-        );
-
         Some(Rule {
             language,
-            function_syntax,
-            singleline_comment,
-            multiline_comment,
             delimiter: (String::from("{"), String::from("}")),
         })
     }
 
     pub fn contains_function(&self, line: &String, function_name: &String) -> bool {
-        if !self.function_syntax.is_match(&line) {
+        let function_syntax = self.language.get_function_syntax();
+        if !function_syntax.is_match(&line) {
             return false;
         }
 
-        match self.function_syntax.captures(&line) {
+        match function_syntax.captures(&line) {
             Some(cap) => cap.get(1).unwrap().as_str() == function_name.as_str(),
             None => false,
         }
     }
 
     pub fn contains_comment(&self, line: &String) -> Option<CommentType> {
+        let (single_line, multi_line_start, multi_line_end) = self.language.get_comment_delimiters();
+
         let trimmed = line.trim();
-        if trimmed.starts_with(&self.singleline_comment) {
+        if trimmed.starts_with(&single_line) {
             return Some(CommentType::SingleLine);
-        } else if trimmed.starts_with(&self.multiline_comment.0)
-            && trimmed.ends_with(&self.multiline_comment.1)
+        } else if trimmed.starts_with(&multi_line_start)
+            && trimmed.ends_with(&multi_line_end)
         {
             return Some(CommentType::MultiLineComplete);
-        } else if trimmed.starts_with(&self.multiline_comment.0) {
+        } else if trimmed.starts_with(&multi_line_start) {
             return Some(CommentType::MultiLineStart);
-        } else if trimmed.ends_with(&self.multiline_comment.1) {
+        } else if trimmed.ends_with(&multi_line_end) {
             return Some(CommentType::MultiLineEnd);
         }
 
@@ -97,7 +62,7 @@ mod tests {
     use super::{CommentType, Language, Rule};
     use std::path;
 
-    fn rule_fromlanguage(lang: Language) -> Rule {
+    fn rule_from_language(lang: Language) -> Rule {
         let rust_path = path::Path::new("rust.rs");
         let python_path = path::Path::new("python.py");
         let javascript_path = path::Path::new("javascript.js");
@@ -198,7 +163,7 @@ mod tests {
         ];
 
         for (line, name, lang, expected) in functions {
-            let rule = rule_fromlanguage(lang);
+            let rule = rule_from_language(lang);
             let result = rule.contains_function(&line.to_string(), &name.to_string());
             assert_eq!(result, expected);
         }
@@ -254,7 +219,7 @@ mod tests {
         for (comment, lang, expected) in comments {
             let comment = comment.to_string();
 
-            let rule = rule_fromlanguage(lang);
+            let rule = rule_from_language(lang);
             let result = rule.contains_comment(&comment);
             assert_eq!(result, expected);
         }

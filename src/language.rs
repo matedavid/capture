@@ -1,3 +1,5 @@
+use regex;
+
 #[derive(Debug, PartialEq)]
 pub enum Language {
     Rust,
@@ -33,5 +35,36 @@ impl Language {
             Language::C => "cpp",
             Language::Unknown => "",
         }
+    }
+
+    pub fn get_function_syntax(&self) -> regex::Regex {
+        match self {
+            Language::Rust => regex::Regex::new(r"^ *(?:pub)? *fn *([a-zA-Z0-9_]+).*\(.*\) *(?:-> *[a-zA-Z0-9_]+ *)?\{? *$"),
+            Language::Python => regex::Regex::new(r"^ *def *([a-zA-Z0-9_]+) *\([.]*\) *: *$"),
+            Language::Javascript => regex::Regex::new(
+                r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]+)? *(?:=>)? *\{? *$",
+            ),
+            Language::Typescript => regex::Regex::new(r"^ *(?:function|const|let) *([a-zA-Z0-9_]+) *=? *\(.*\) *(?:: *[a-zA-Z0-9_]*)? *(?:=>)? *\{? *$"),
+            Language::Golang => regex::Regex::new(r"^ *func *([a-zA-Z0-9_]+) *\(.*\) *(?:.*)? *\{? *$"),
+            // In C++, when creating snippet of class function, you only need to input the 'function_name',
+            // not the complete 'Class::function_name'
+            Language::C => regex::Regex::new(r"^ *[a-zA-Z0-9_*& ]+(?: |::)([a-zA-Z0-9_]+)\(.*\) *\{? *$"),
+            _ => regex::Regex::new(r".*"),
+        }
+        .unwrap()
+    }
+
+    pub fn get_comment_delimiters(&self) -> (String, String, String) {
+        let comment_delimiters = match self {
+            Language::Rust
+            | Language::Javascript
+            | Language::Typescript
+            | Language::Golang
+            | Language::C => ("//", "/*", "*/"),
+            Language::Python => ("#", r#"""""#, r#"""""#),
+            _ => ("", "", ""),
+        };
+
+        (comment_delimiters.0.to_string(), comment_delimiters.1.to_string(), comment_delimiters.2.to_string())
     }
 }
